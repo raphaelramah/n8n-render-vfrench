@@ -2,14 +2,20 @@ services:
   - type: web
     name: n8n
     env: docker
-    region: frankfurt # optional (defaults to oregon)
-    plan: free # optional (defaults to starter)
-    branch: main # optional (defaults to master)
+    region: frankfurt
+    plan: free  # Peut être mis à jour vers 'starter' plus tard
+    branch: main
     numInstances: 1
     healthCheckPath: /healthz
+    dockerfilePath: ./Dockerfile
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 1
     envVars:
+      # Configuration de la base de données
       - key: DB_TYPE
-        value: postgresdb
+        value: postgres 
       - key: DB_POSTGRESDB_HOST
         fromDatabase:
           name: n8nDB
@@ -30,20 +36,82 @@ services:
         fromDatabase:
           name: n8nDB
           property: password
+      - key: DB_POSTGRESDB_SSL
+        value: "true"
+
+      # Configuration réseau
       - key: PORT
         value: 5678
+      - key: N8N_PROTOCOL
+        value: https
+      - key: WEBHOOK_URL
+        value: https://${N8N_DOMAIN}
+      - key: N8N_EDITOR_BASE_URL
+        value: https://${N8N_DOMAIN}
+      - key: N8N_HOST
+        value: ${N8N_DOMAIN}
+
+      # Configuration des logs
       - key: N8N_LOG_LEVEL
         value: info
+      - key: N8N_LOG_OUTPUT
+        value: console
+
+      # Configuration temporelle et locale
       - key: GENERIC_TIMEZONE
         value: Europe/Paris
       - key: TZ
         value: Europe/Paris
       - key: N8N_DEFAULT_LOCALE
         value: fr
+
+      # Sécurité et chiffrement
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: "true"
+      - key: N8N_BASIC_AUTH_USER
+        value: ${N8N_USER}  # ✅ À personnaliser
+      - key: N8N_BASIC_AUTH_PASSWORD
+        value: ${N8N_PASSWORD}  # ✅ À personnaliser immédiatement
+
+      # Performances et maintenance
+      - key: N8N_PAYLOAD_SIZE_MAX
+        value: 16
+      - key: EXECUTIONS_DATA_PRUNE
+        value: "true"
+      - key: EXECUTIONS_DATA_MAX_AGE
+        value: 168
+      - key: EXECUTIONS_PROCESS
+        value: main
+
+      # Interface utilisateur
+      - key: N8N_DISABLE_UI
+        value: "false"
+
+      # Métriques et diagnostics
+      - key: N8N_METRICS
+        value: "true"
+      - key: N8N_DIAGNOSTICS_ENABLED
+        value: "false"  
+
+      # Webhooks
+      - key: N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN
+        value: "true"
+
+      # Node.js
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=1024"
 
 databases:
   - name: n8nDB
-    region: frankfurt # optional (defaults to oregon)
+    region: frankfurt
     plan: free
+    databaseName: n8n_prod
+    user: n8n_user
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: "Accès global - à restreindre en production"
+
