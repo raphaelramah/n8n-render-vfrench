@@ -8,10 +8,7 @@ services:
     numInstances: 1
     healthCheckPath: /healthz
     dockerfilePath: ./Dockerfile
-    disk:
-      name: n8n-data
-      mountPath: /home/node/.n8n
-      sizeGB: 1
+ 
     envVars:
       # Configuration de la base de données
       - key: DB_TYPE
